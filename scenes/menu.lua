@@ -1,20 +1,35 @@
 -----------------------------------------------------------------------------------------
 --
--- level1.lua
+-- menu.lua
 --
 -----------------------------------------------------------------------------------------
 
 local storyboard = require( "storyboard" )
 local scene = storyboard.newScene()
 
--- include Corona's "physics" library
-local physics = require "physics"
-physics.start(); physics.pause()
+-- include Corona's "widget" library
+local widget = require "widget"
+
+--basic variables
+local screenW = display.contentWidth;
+local screenH = display.contentHeight;
+local halfW = screenW * 0.5;
+local halfH = screenH * 0.5;
+
 
 --------------------------------------------
 
 -- forward declarations and other locals
-local screenW, screenH, halfW = display.contentWidth, display.contentHeight, display.contentWidth*0.5
+local playBtn
+
+-- 'onRelease' event listener for playBtn
+local function onPlayBtnRelease()
+	
+	-- go to level1.lua scene
+	storyboard.gotoScene( "scenes.level1", "fade", 500 )
+	
+	return true	-- indicates successful touch
+end
 
 -----------------------------------------------------------------------------------------
 -- BEGINNING OF YOUR IMPLEMENTATION
@@ -28,41 +43,40 @@ local screenW, screenH, halfW = display.contentWidth, display.contentHeight, dis
 function scene:createScene( event )
 	local group = self.view
 
-	-- create a grey rectangle as the backdrop
-	local background = display.newRect( 0, 0, screenW, screenH )
+	-- display a background image
+	local background = display.newImageRect( "background.jpg", screenW, screenH )
 	background.anchorX = 0
 	background.anchorY = 0
-	background:setFillColor( .5 )
+	background.x, background.y = 0, 0
 	
-	-- make a crate (off-screen), position it, and rotate slightly
-	local crate = display.newImageRect( "crate.png", 90, 90 )
-	crate.x, crate.y = 160, -100
-	crate.rotation = 15
+	-- create/position logo/title image on upper-half of the screen
+	local titleLogo = display.newText( "Ball Drop", halfW,100, system.nativeFontBold, 54 )
+	titleLogo.x = display.contentWidth * 0.5
+	titleLogo.y = 100
 	
-	-- add physics to the crate
-	physics.addBody( crate, { density=1.0, friction=0.3, bounce=0.3 } )
-	
-	-- create a grass object and add physics (with custom shape)
-	local grass = display.newImageRect( "grass.png", screenW, 82 )
-	grass.anchorX = 0
-	grass.anchorY = 1
-	grass.x, grass.y = 0, display.contentHeight
-	
-	-- define a shape that's slightly shorter than image bounds (set draw mode to "hybrid" or "debug" to see)
-	local grassShape = { -halfW,-34, halfW,-34, halfW,34, -halfW,34 }
-	physics.addBody( grass, "static", { friction=0.3, shape=grassShape } )
+	-- create a widget button (which will loads level1.lua on release)
+	playBtn = widget.newButton{
+		label="Play Now",
+		labelColor = { default={255}, over={128} },
+		default="button.png",
+		over="button-over.png",
+		width=154, height=40,
+		onRelease = onPlayBtnRelease	-- event listener function
+	}
+	playBtn.x = halfW;
+	playBtn.y = screenH - 125
 	
 	-- all display objects must be inserted into group
 	group:insert( background )
-	group:insert( grass)
-	group:insert( crate )
+	group:insert( titleLogo )
+	group:insert( playBtn )
 end
 
 -- Called immediately after scene has moved onscreen:
 function scene:enterScene( event )
 	local group = self.view
 	
-	physics.start()
+	-- INSERT code here (e.g. start timers, load audio, start listeners, etc.)
 	
 end
 
@@ -70,7 +84,7 @@ end
 function scene:exitScene( event )
 	local group = self.view
 	
-	physics.stop()
+	-- INSERT code here (e.g. stop timers, remove listenets, unload sounds, etc.)
 	
 end
 
@@ -78,8 +92,10 @@ end
 function scene:destroyScene( event )
 	local group = self.view
 	
-	package.loaded[physics] = nil
-	physics = nil
+	if playBtn then
+		playBtn:removeSelf()	-- widgets must be manually removed
+		playBtn = nil
+	end
 end
 
 -----------------------------------------------------------------------------------------
